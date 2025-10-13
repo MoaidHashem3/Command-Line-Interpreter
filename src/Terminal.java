@@ -89,7 +89,6 @@ public class Terminal {
         }
     }
 
-
     void pwd() {
         System.out.println("Nada's part");
     }
@@ -115,19 +114,89 @@ public class Terminal {
     }
 
     void touch(String[] args) {
-        System.out.println("Huda's part");
+        if (args.length == 0) {
+            System.out.println("Usage: touch <filename>");
+            return;
+        }
+
+        File file = new File(args[0]);
+        try {
+            if (file.createNewFile()) {
+                System.out.println("File created: " + file.getName());
+            } else {
+                System.out.println("File already exists.");
+            }
+        } catch (IOException e) {
+            System.out.println("Error creating file: " + e.getMessage());
+        }
     }
 
     void rm(String[] args) {
-        System.out.println("Huda's part");
-    }
+        if (args.length == 0) {
+            System.out.println("Usage: rm <filename>");
+            return;
+        }
 
-    void wc(String[] args) {
-        System.out.println("Huda's part");
+        File file = new File(args[0]);
+        if (file.exists()) {
+            if (file.delete()) {
+                System.out.println("File deleted: " + file.getName());
+            } else {
+                System.out.println("Error deleting file.");
+            }
+        } else {
+            System.out.println("File not found.");
+        }
     }
 
     void cat(String[] args) {
-        System.out.println("Huda's part");
+        if (args.length == 0) {
+            System.out.println("Usage: cat <filename>");
+            return;
+        }
+
+        File file = new File(args[0]);
+        if (!file.exists()) {
+            System.out.println("File not found.");
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            System.out.println("----- File Content -----");
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+            System.out.println("------------------------");
+        } catch (IOException e) {
+            System.out.println("Error reading file: " + e.getMessage());
+        }
+    }
+
+    void wc(String[] args) {
+        if (args.length == 0) {
+            System.out.println("Usage: wc <filename>");
+            return;
+        }
+
+        File file = new File(args[0]);
+        if (!file.exists()) {
+            System.out.println("File not found.");
+            return;
+        }
+
+        int lines = 0, words = 0, chars = 0;
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lines++;
+                words += line.split("\\s+").length;
+                chars += line.length();
+            }
+            System.out.println("Lines: " + lines + " | Words: " + words + " | Characters: " + chars);
+        } catch (IOException e) {
+            System.out.println("Error reading file: " + e.getMessage());
+        }
     }
 
     void zip(String[] args) {
@@ -141,11 +210,8 @@ public class Terminal {
 
 class Parser {
     private String commandName;
-
     private String[] args;
-
     private boolean appendMode = false;
-
     private String outputFile = null;
 
     public boolean parse(String input) {
@@ -153,9 +219,7 @@ class Parser {
             return false;
         }
 
-        // Split input by spaces into tokens
         String[] parts = input.trim().split("\\s+");
-
         commandName = parts[0];
 
         List<String> arguments = new ArrayList<>();
@@ -175,13 +239,13 @@ class Parser {
         }
 
         args = arguments.toArray(new String[0]);
-
         return true;
     }
 
     public String getCommandName() {
         return commandName;
     }
+
     public String[] getArgs() {
         return args;
     }
