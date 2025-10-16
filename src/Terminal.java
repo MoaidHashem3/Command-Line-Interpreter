@@ -37,6 +37,12 @@ public class Terminal {
     public void execute(Parser parser) {
         String cmd = parser.getCommandName();
         String[] args = parser.getArgs();
+        if (cmd.equals("cp") && args.length > 0 && args[0].equals("-r")) {
+            // Remove the "-r" from args and call cp_r
+            String[] newArgs = Arrays.copyOfRange(args, 1, args.length);
+            cp_r(newArgs);
+            return;
+        }
 
         switch (cmd) {
             case "pwd":
@@ -113,7 +119,74 @@ public class Terminal {
     }
 
     void cp(String[] args) {
-        System.out.println("Rahma's part");
+        if (args.length != 2) {
+            System.out.println("Usage: cp <source_file> <destination_file>");
+            return;
+        }
+
+        File sourceFile = new File(args[0]);
+        File destFile = new File(args[1]);
+
+        if (!sourceFile.exists()) {
+            System.out.println("Source file not found: " + args[0]);
+            return;
+        }
+
+        if (sourceFile.isDirectory()) {
+            System.out.println("Source is a directory. Use 'cp -r' for directories.");
+            return;
+        }
+        try (FileInputStream fis = new FileInputStream(sourceFile);
+             FileOutputStream fos = new FileOutputStream(destFile)) {
+
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = fis.read(buffer)) > 0) {
+                fos.write(buffer, 0, length);
+            }
+
+            System.out.println("File copied successfully: " + args[0] + " -> " + args[1]);
+
+        } catch (IOException e) {
+            System.out.println("Error copying file: " + e.getMessage());
+        }
+    }
+
+    void cp_r(String[] args) {
+        if (args.length != 2) {
+            System.out.println("Usage: cp -r <source_directory> <destination_directory>");
+            return;
+        }
+
+        File sourceDir = new File(args[0]);
+        File destDir = new File(args[1]);
+
+        if (!sourceDir.exists()) {
+            System.out.println("Source directory not found: " + args[0]);
+            return;
+        }
+
+        if (!sourceDir.isDirectory()) {
+            System.out.println("Source is not a directory: " + args[0]);
+            return;
+        }
+
+        try {
+            if (destDir.getCanonicalPath().startsWith(sourceDir.getCanonicalPath() + File.separator)) {
+                System.out.println("Error: Cannot copy directory into itself");
+                return;
+            }
+        } catch (IOException e) {
+            System.out.println("Error checking paths: " + e.getMessage());
+            return;
+        }
+
+        try {
+            copyDirectory(sourceDir, destDir);
+            System.out.println("Directory copied recursively: " + args[0] + " -> " + args[1]);
+        } catch (IOException e) {
+            System.out.println("Error copying directory: " + e.getMessage());
+        }
     }
 
     void touch(String[] args) {
@@ -341,6 +414,39 @@ public class Terminal {
         }
     }
 
+    private void copyDirectory(File source, File destination) throws IOException {
+        if (!destination.exists()) {
+            if (!destination.mkdirs()) {
+                throw new IOException("Failed to create directory: " + destination.getPath());
+            }
+        }
+
+        File[] files = source.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                File destFile = new File(destination, file.getName());
+
+                if (file.isDirectory()) {
+                    copyDirectory(file, destFile);
+                } else {
+                    copyFile(file, destFile);
+                }
+            }
+        }
+    }
+
+    private void copyFile(File source, File destination) throws IOException {
+        try (FileInputStream fis = new FileInputStream(source);
+             FileOutputStream fos = new FileOutputStream(destination)) {
+
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = fis.read(buffer)) > 0) {
+                fos.write(buffer, 0, length);
+            }
+        }
+    }
+
 }
 
 class Parser {
@@ -384,4 +490,6 @@ class Parser {
     public String[] getArgs() {
         return args;
     }
+
+
 }
