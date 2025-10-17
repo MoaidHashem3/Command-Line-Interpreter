@@ -5,6 +5,7 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class Terminal {
+     private File currentDir = new File(System.getProperty("user.dir"));
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         Parser parser = new Parser();
@@ -99,23 +100,94 @@ public class Terminal {
     }
 
     void pwd() {
-        System.out.println("Nada's part");
+        System.out.println(currentDir.getAbsolutePath());
     }
 
-    void cd(String[] args) {
-        System.out.println("Nada's part");
+   void cd(String[] args) {
+        if (args.length == 0) {
+
+            currentDir = new File(System.getProperty("user.home"));
+        } else if (args[0].equals("..")) {
+
+            currentDir = currentDir.getParentFile() != null ? currentDir.getParentFile() : currentDir;
+        } else {
+
+            File newDir = new File(args[0]);
+            if (!newDir.isAbsolute()) {
+                newDir = new File(currentDir, args[0]);
+            }
+            if (newDir.exists() && newDir.isDirectory()) {
+                currentDir = newDir;
+            } else {
+                System.out.println("Invalid path: " + args[0]);
+            }
+        }
     }
 
     void mkdir(String[] args) {
-        System.out.println("Nada's part");
+        if (args.length == 0) {
+            System.out.println("Usage: mkdir <directory_name>");
+            return;
+        }
+
+        for (String dirName : args) {
+            File newDir = new File(dirName);
+            if (!newDir.isAbsolute()) {
+                newDir = new File(currentDir, dirName);
+            }
+            if (newDir.exists()) {
+                System.out.println("Directory already exists: " + newDir.getName());
+            } else if (newDir.mkdirs()) {
+                System.out.println("Directory created: " + newDir.getName());
+            } else {
+                System.out.println("Failed to create: " + newDir.getName());
+            }
+        }
     }
 
     void rmdir(String[] args) {
-        System.out.println("Nada's part");
+        if (args.length == 0) {
+            System.out.println("Usage: rmdir <directory_name> or rmdir *");
+            return;
+        }
+
+        if (args[0].equals("*")) {
+            File[] files = currentDir.listFiles(File::isDirectory);
+            if (files != null) {
+                for (File dir : files) {
+                    if (Objects.requireNonNull(dir.list()).length == 0 && dir.delete()) {
+                        System.out.println("Removed empty directory: " + dir.getName());
+                    }
+                }
+            }
+        } else {
+            File dir = new File(args[0]);
+            if (!dir.isAbsolute()) {
+                dir = new File(currentDir, args[0]);
+            }
+            if (dir.exists() && dir.isDirectory()) {
+                if (Objects.requireNonNull(dir.list()).length == 0 && dir.delete()) {
+                    System.out.println("Directory removed: " + dir.getName());
+                } else {
+                    System.out.println("Directory not empty or cannot be deleted.");
+                }
+            } else {
+                System.out.println("Directory not found: " + args[0]);
+            }
+        }
     }
 
-    void ls() {
-        System.out.println("Nada's part");
+      void ls() {
+        File[] files = currentDir.listFiles();
+        if (files == null || files.length == 0) {
+            System.out.println("(empty directory)");
+            return;
+        }
+
+        Arrays.sort(files, Comparator.comparing(File::getName));
+        for (File f : files) {
+            System.out.println(f.getName());
+        }
     }
 
     void cp(String[] args) {
@@ -188,7 +260,7 @@ public class Terminal {
             System.out.println("Error copying directory: " + e.getMessage());
         }
     }
-
+ 
     void touch(String[] args) {
         if (args.length == 0) {
             System.out.println("Usage: touch <filename>");
